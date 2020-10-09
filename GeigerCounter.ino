@@ -1,0 +1,93 @@
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET  -1 //   4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+  int countTime = 30; //Seconds
+  const byte interruptPin = 2;
+  volatile long countPulse = 0;
+  volatile long oldTime = 0;
+  volatile long newTime = 0;
+
+// the setup function runs once when you press reset or power the board
+void setup() {
+  //int status;
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  pinMode(interruptPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), counterGeiger, FALLING);
+
+  pinMode(9, OUTPUT);
+  analogReference(DEFAULT); //power supply
+  
+  TCCR1A = _BV(COM1A0);  //CTC
+  TCCR1B = _BV(CS11) | _BV(WGM12); //clkT2S/8 (from prescaler) OC1A toggle
+  OCR1A = 28;
+  
+  Serial.begin(115200);
+  Serial.println("Setup completed");
+
+  display.clearDisplay();
+  display.setTextSize(2);             // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);             // Start at top-left corner
+  display.println(F("Setup\ncompleted"));
+
+  display.display();
+}
+
+void loop() {
+  newTime = millis();
+
+  if ((newTime - oldTime) >= countTime *1000) {
+    oldTime = newTime;
+    Serial.print("Time, s: ");
+    Serial.println(oldTime/1000); //prints time since program started
+    Serial.print("Count, pulses/" + String(countTime) + " sec: ");
+    Serial.println(countPulse);
+    Serial.println("uR/hr (Cs 137): " + String(countPulse * 3600 / 65 / countTime));
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);        // Draw white text
+    display.setCursor(0,0);             // Start at top-left corner
+    display.setTextSize(1);             // Normal 1:1 pixel scale
+    displayPrint("PPM       ");
+    display.setTextSize(2);             // Normal 1:1 pixel scale
+    displayPrintln(String(countPulse*60/countTime));
+    display.setTextSize(1);             // Normal 1:1 pixel scale
+    displayPrint("uR/hr     ");
+    display.setTextSize(2);             // Normal 1:1 pixel scale
+    displayPrintln(String(countPulse * 3600.00 / 67 / countTime));
+    display.setTextSize(1);             // Normal 1:1 pixel scale
+    displayPrint("uR/hr Oleg");
+    display.setTextSize(2);             // Normal 1:1 pixel scale
+    displayPrintln(String(countPulse * 3600.00 / 100 / countTime));
+    display.display();
+    countPulse = 0;
+  } else if (newTime < oldTime) {
+    oldTime = newTime;
+    countPulse = 0;
+    Serial.println ("Resetting - runtime is over 50 days");
+  }
+}
+
+void counterGeiger(){
+  countPulse ++;
+}
+
+void displayPrintln(String str2Display) {
+  display.println(str2Display);
+}
+void displayPrint(String str2Display) {
+  display.print(str2Display);
+}
