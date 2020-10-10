@@ -17,7 +17,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
   volatile long oldTime = 0;
   volatile long newTime = 0;
   int arrayPosition = 0;
-  int impCount[9];
+  const int arraySize = 9;
+  int impCount[arraySize];
   int nonZeroCount = 0;
   long totCountPulse = 0;
   int i;
@@ -39,7 +40,7 @@ void setup() {
   TCCR1B = _BV(CS11) | _BV(WGM12); //clkT2S/8 (from prescaler) OC1A toggle
   OCR1A = 28;
 
-  for (i = 0; i < sizeof(impCount); i++) {
+  for (i = 0; i < arraySize; i++) {
     impCount[i] = 0;
   }
   
@@ -63,24 +64,29 @@ void loop() {
     
     impCount[arrayPosition] = countPulse;
     arrayPosition ++;
-    if (arrayPosition >= sizeof(impCount)) {
+    if (arrayPosition >= arraySize) {
       arrayPosition = 0;
     }
     nonZeroCount = 0;
     totCountPulse = 0;
-    for (i = 0; i < sizeof(impCount); i++) {
+    for (i = 0; i < arraySize; i++) {
       if (impCount[i] > 0 ) {
         nonZeroCount ++;
         totCountPulse += impCount[i];
       }
     }
     int avgPPM = totCountPulse * 60 /(countTime * nonZeroCount);
-    int avgRad = avgPPM * 60 / 65;
+    int avgRad = avgPPM * 60 / 67;
     
-    Serial.print("Time, s: ");
-    Serial.println(oldTime/1000); //prints time since program started
+    Serial.println("Time, s: " + String(oldTime/1000)); //prints time since program started
+    Serial.println("arraySize " + String(arraySize));
     Serial.println("Count, pulses/" + String(countTime) + " sec: " + String(countPulse));
     Serial.println("uR/hr (Cs 137): " + String(countPulse * 3600 / 65 / countTime));
+    Serial.println("totCountPulse " + String(totCountPulse));
+    Serial.println("countTime " + String(countTime));
+    Serial.println("nonZeroCount " + String(nonZeroCount));
+    Serial.println("avgPPM " + String(avgPPM));
+    Serial.println("avgRad " + String(avgRad));
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);        // Draw white text
     display.setCursor(0,0);             // Start at top-left corner
