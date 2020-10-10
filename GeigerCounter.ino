@@ -70,7 +70,6 @@ void loop() {
     nonZeroCount = 0;
     totCountPulse = 0;
     for (i = 0; i < arraySize; i++) {
-      Serial.println(String(impCount[i]));
       if (impCount[i] > 0 ) {
         nonZeroCount ++;
         totCountPulse += impCount[i];
@@ -78,29 +77,23 @@ void loop() {
     }
     int avgPPM = totCountPulse * 60 /(countTime * nonZeroCount);
     int avgRad = avgPPM * 60 / 65;
-    Serial.println("avgPPM " + String(avgPPM));
-    Serial.println("avgRad " + String(avgRad));
     
     Serial.print("Time, s: ");
     Serial.println(oldTime/1000); //prints time since program started
-    Serial.print("Count, pulses/" + String(countTime) + " sec: ");
-    Serial.println(countPulse);
+    Serial.println("Count, pulses/" + String(countTime) + " sec: " + String(countPulse));
     Serial.println("uR/hr (Cs 137): " + String(countPulse * 3600 / 65 / countTime));
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);        // Draw white text
     display.setCursor(0,0);             // Start at top-left corner
     display.setTextSize(1);             // Normal 1:1 pixel scale
-    displayPrint("PPM       ");
+    displayPrintln("    Geiger Counter");
+    displayPrintln("Current PPM uR/hr");
     display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse*60/countTime));
+    displayPrintln(String(countPulse*60/countTime) + ' ' + String(countPulse * 3600 / 67 / countTime));
     display.setTextSize(1);             // Normal 1:1 pixel scale
-    displayPrint("uR/hr     ");
+    displayPrintln("Average PPM uR/hr");
     display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse * 3600 / 67 / countTime));
-    display.setTextSize(1);             // Normal 1:1 pixel scale
-    displayPrint("uR/hr Oleg");
-    display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse * 3600 / 100 / countTime));
+    displayPrintln(String(avgPPM) + ' ' + String(avgRad));
     display.display();
     countPulse = 0;
   } else if (newTime < oldTime) {
