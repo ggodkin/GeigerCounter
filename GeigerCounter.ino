@@ -11,15 +11,20 @@
 #define OLED_RESET  -1 //   4 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-  int countTime = 30; //Seconds
+  int countTime = 20; //Seconds
   const byte interruptPin = 2;
   volatile long countPulse = 0;
   volatile long oldTime = 0;
   volatile long newTime = 0;
+  int arraySize = 9;
+  int arrayPosition = 0;
+  int impCount[9];
+  int nonZeroCount = 0;
+  long totCountPulse = 0;
+  int i;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-  //int status;
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
@@ -34,6 +39,10 @@ void setup() {
   TCCR1A = _BV(COM1A0);  //CTC
   TCCR1B = _BV(CS11) | _BV(WGM12); //clkT2S/8 (from prescaler) OC1A toggle
   OCR1A = 28;
+
+  for (i = 0; i < arraySize; i++) {
+    impCount[arraySize] = 0;
+  }
   
   Serial.begin(115200);
   Serial.println("Setup completed");
@@ -52,6 +61,26 @@ void loop() {
 
   if ((newTime - oldTime) >= countTime *1000) {
     oldTime = newTime;
+    
+    impCount[arrayPosition] = countPulse;
+    arrayPosition ++;
+    if (arrayPosition >= arraySize) {
+      arrayPosition = 0;
+    }
+    nonZeroCount = 0;
+    totCountPulse = 0;
+    for (i = 0; i < arraySize; i++) {
+      Serial.println(String(impCount[i]));
+      if (impCount[i] > 0 ) {
+        nonZeroCount ++;
+        totCountPulse += impCount[i];
+      }
+    }
+    int avgPPM = totCountPulse * 60 /(countTime * nonZeroCount);
+    int avgRad = avgPPM * 60 / 65;
+    Serial.println("avgPPM " + String(avgPPM));
+    Serial.println("avgRad " + String(avgRad));
+    
     Serial.print("Time, s: ");
     Serial.println(oldTime/1000); //prints time since program started
     Serial.print("Count, pulses/" + String(countTime) + " sec: ");
@@ -67,11 +96,11 @@ void loop() {
     display.setTextSize(1);             // Normal 1:1 pixel scale
     displayPrint("uR/hr     ");
     display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse * 3600.00 / 67 / countTime));
+    displayPrintln(String(countPulse * 3600 / 67 / countTime));
     display.setTextSize(1);             // Normal 1:1 pixel scale
     displayPrint("uR/hr Oleg");
     display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse * 3600.00 / 100 / countTime));
+    displayPrintln(String(countPulse * 3600 / 100 / countTime));
     display.display();
     countPulse = 0;
   } else if (newTime < oldTime) {
