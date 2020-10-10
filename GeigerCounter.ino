@@ -16,7 +16,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
   volatile long countPulse = 0;
   volatile long oldTime = 0;
   volatile long newTime = 0;
-  int arraySize = 9;
   int arrayPosition = 0;
   int impCount[9];
   int nonZeroCount = 0;
@@ -40,8 +39,8 @@ void setup() {
   TCCR1B = _BV(CS11) | _BV(WGM12); //clkT2S/8 (from prescaler) OC1A toggle
   OCR1A = 28;
 
-  for (i = 0; i < arraySize; i++) {
-    impCount[arraySize] = 0;
+  for (i = 0; i < sizeof(impCount); i++) {
+    impCount[i] = 0;
   }
   
   Serial.begin(115200);
@@ -64,12 +63,12 @@ void loop() {
     
     impCount[arrayPosition] = countPulse;
     arrayPosition ++;
-    if (arrayPosition >= arraySize) {
+    if (arrayPosition >= sizeof(impCount)) {
       arrayPosition = 0;
     }
     nonZeroCount = 0;
     totCountPulse = 0;
-    for (i = 0; i < arraySize; i++) {
+    for (i = 0; i < sizeof(impCount); i++) {
       if (impCount[i] > 0 ) {
         nonZeroCount ++;
         totCountPulse += impCount[i];
@@ -85,15 +84,12 @@ void loop() {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);        // Draw white text
     display.setCursor(0,0);             // Start at top-left corner
-    display.setTextSize(1);             // Normal 1:1 pixel scale
-    displayPrintln("    Geiger Counter");
-    displayPrintln("Current PPM uR/hr");
-    display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(countPulse*60/countTime) + ' ' + String(countPulse * 3600 / 67 / countTime));
-    display.setTextSize(1);             // Normal 1:1 pixel scale
-    displayPrintln("Average PPM uR/hr");
-    display.setTextSize(2);             // Normal 1:1 pixel scale
-    displayPrintln(String(avgPPM) + ' ' + String(avgRad));
+    displayPrintln("  Geiger Counter",1);
+    displayPrintln("Current/Average uR/hr",1);
+    //displayPrintln(String(countPulse*60/countTime) + ' ' + String(countPulse * 3600 / 67 / countTime),2);
+    //displayPrintln("Average PPM uR/hr",1);
+    displayPrintln(String(countPulse * 3600 / 67 / countTime),2); // Current radiation
+    displayPrintln(String(avgRad),3);   //Average radiation
     display.display();
     countPulse = 0;
   } else if (newTime < oldTime) {
@@ -107,9 +103,11 @@ void counterGeiger(){
   countPulse ++;
 }
 
-void displayPrintln(String str2Display) {
-  display.println(str2Display);
+void displayPrintln(String str2Display, int txtSize) {
+  displayPrint(str2Display,txtSize);
+  display.println();
 }
-void displayPrint(String str2Display) {
+void displayPrint(String str2Display, int txtSize) {
+  display.setTextSize(txtSize);
   display.print(str2Display);
 }
